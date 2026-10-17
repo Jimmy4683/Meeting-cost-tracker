@@ -1,0 +1,744 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="description" content="Meeting Cost & Invoice Tracker Progressive Web App">
+    <title>Meeting Cost & Invoice Tracker (PWA)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- PWA Web App Manifest (Embedded Data URL for single-file portability) -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Meeting%20Cost%20Tracker%22%2C%22short_name%22%3A%22CostTracker%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fvia.placeholder.com%2F192%2F2563eb%2Fffffff%3Ftext%3D%25C2%25A3%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+
+    <style>
+        body {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .strike-cost {
+            text-decoration: line-through;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .active-cost {
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between pb-6">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-950 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-md">
+        <div class="max-w-xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-stopwatch text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm tracking-wide text-white leading-tight">Meeting Cost & Invoice Tracker</h1>
+                    <p class="text-[10px] text-slate-400 font-medium">15-Min Bucket Billing (£ GBP)</p>
+                </div>
+            </div>
+            <div id="statusBadge" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                <span id="statusText">Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-xl mx-auto w-full px-4 pt-4 flex-grow space-y-4">
+
+        <!-- Deployment & PWA Info Panel -->
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3.5 flex justify-between items-center shadow-sm">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-cloud-arrow-up text-blue-400 text-base"></i>
+                <div>
+                    <h3 class="text-xs font-bold text-slate-200">How to Deploy & Install</h3>
+                    <p class="text-[10px] text-slate-400">Deploy free to GitHub Pages, Netlify or Vercel</p>
+                </div>
+            </div>
+            <button onclick="toggleDeployModal()" class="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-book text-[10px]"></i> Instructions
+            </button>
+        </div>
+
+        <!-- Configuration Panel -->
+        <section class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="col-span-1 sm:col-span-3">
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Meeting Name</label>
+                    <input type="text" id="meetingName" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors" value="Q3 Client Strategy Session">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Hourly Rate (£)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-slate-500 text-sm font-bold">£</span>
+                        <input type="number" id="hourlyRate" step="0.5" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors" value="10">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Materials (£)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-slate-500 text-sm font-bold">£</span>
+                        <input type="number" id="materialCost" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-colors" value="0" oninput="renderApp()">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Billing Step</label>
+                    <input type="text" readonly class="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-400 cursor-not-allowed" value="15 Min (0.25h Min)">
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Metrics Cards -->
+        <section class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 text-center shadow-lg">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Elapsed Time</span>
+                <span id="timerDisplay" class="text-2xl font-black text-white tracking-wider font-mono">00:00:00</span>
+            </div>
+            <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 text-center shadow-lg">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Estimated Cost</span>
+                <span id="liveCostDisplay" class="text-2xl font-black text-blue-400 tracking-wider font-mono">£0.00</span>
+            </div>
+        </section>
+
+        <!-- Active Attendees Control Panel -->
+        <section class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 text-center shadow-xl">
+            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                <i class="fa-solid fa-users text-blue-400 mr-1"></i> Active Attendees (Live Adjust)
+            </label>
+            <div class="flex justify-center items-center gap-6">
+                <button type="button" onclick="adjustAttendees(-1)" class="w-14 h-14 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-2xl text-2xl font-bold transition-all shadow-md active:scale-95 flex items-center justify-center">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <div class="w-16">
+                    <span id="attendeeDisplay" class="text-3xl font-black text-white block">4</span>
+                    <span class="text-[9px] text-slate-400 font-semibold uppercase">People</span>
+                </div>
+                <button type="button" onclick="adjustAttendees(1)" class="w-14 h-14 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white rounded-2xl text-2xl font-bold transition-all shadow-md active:scale-95 flex items-center justify-center">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Control Action Buttons -->
+        <section class="space-y-2.5 pt-1">
+            <button type="button" id="startPauseBtn" onclick="toggleStartPause()" class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-sm font-bold tracking-wide shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play text-xs"></i> <span>Start Meeting</span>
+            </button>
+
+            <div class="grid grid-cols-2 gap-2.5">
+                <button type="button" id="stopBtn" disabled onclick="concludeMeeting()" class="py-3 px-3 bg-slate-800 text-slate-500 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-not-allowed">
+                    <i class="fa-solid fa-flag-checkered text-xs"></i> <span>Finish & Invoice</span>
+                </button>
+                <button type="button" onclick="confirmReset()" class="py-3 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left text-xs text-rose-400"></i> <span>Reset App</span>
+                </button>
+            </div>
+
+            <button type="button" onclick="exportCSV()" class="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-csv text-emerald-400"></i> Export Power BI CSV Data
+            </button>
+        </section>
+
+        <!-- Ledger Table Section -->
+        <section class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <i class="fa-solid fa-list-ol text-blue-400"></i> Cumulative 15-Min Segments
+                </h2>
+                <span class="text-[10px] text-slate-400 font-medium">Auto De-duplicated</span>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-700">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-950 text-slate-400 uppercase text-[9px] font-bold tracking-wider border-b border-slate-800">
+                            <th class="p-2.5">Block</th>
+                            <th class="p-2.5">Interval</th>
+                            <th class="p-2.5 text-right">Att</th>
+                            <th class="p-2.5 text-right">Qtr</th>
+                            <th class="p-2.5 text-right">Running Total (£)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="divide-y divide-slate-700/60 font-mono">
+                        <tr>
+                            <td colspan="5" class="p-4 text-center text-slate-500 font-sans italic text-xs">No active meeting blocks logged.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Financial Summary -->
+    <footer class="max-w-xl mx-auto w-full px-4 mt-4">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-2xl">
+            <div class="text-xs space-y-0.5">
+                <div class="text-slate-400">Labor: <span id="summaryLabor" class="font-bold text-slate-200">£0.00</span></div>
+                <div class="text-slate-400">Materials: <span id="summaryMaterials" class="font-bold text-slate-200">£0.00</span></div>
+            </div>
+            <div class="text-right">
+                <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 block">Total Invoice Value</span>
+                <span id="summaryTotal" class="text-xl font-black text-emerald-400 font-mono">£0.00</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Summary Invoice Modal Popup -->
+    <div id="invoiceModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md p-4 overflow-y-auto flex items-center justify-center">
+        <div class="bg-white text-slate-900 border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            <div class="border-b border-slate-200 pb-3 flex justify-between items-start">
+                <div>
+                    <h2 id="invMeetingName" class="text-lg font-black text-slate-900">Meeting Invoice Summary</h2>
+                    <p id="invDate" class="text-xs text-slate-500 mt-0.5"></p>
+                </div>
+                <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full text-[10px] font-bold">BILLED / PAID</span>
+            </div>
+
+            <div class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
+                <p><strong>Billing Standard:</strong> 15-Minute Quarter-Hour Blocks (£ GBP)</p>
+                <p><strong>Hourly Rate:</strong> £<span id="invRate">10</span>/hr per attendee</p>
+            </div>
+
+            <div class="max-h-48 overflow-y-auto rounded-xl border border-slate-200">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="p-2">Block</th>
+                            <th class="p-2">Interval</th>
+                            <th class="p-2 text-right">Att</th>
+                            <th class="p-2 text-right">Qtrs</th>
+                            <th class="p-2 text-right">Total (£)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceTableBody" class="divide-y divide-slate-100 font-mono text-[11px]"></tbody>
+                </table>
+            </div>
+
+            <div class="bg-slate-900 text-white p-4 rounded-xl space-y-2 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Total Billable Labor:</span>
+                    <span id="invLabor" class="font-bold font-mono">£0.00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Material Expenditures:</span>
+                    <span id="invMaterials" class="font-bold font-mono">£0.00</span>
+                </div>
+                <div class="flex justify-between border-t border-slate-800 pt-2 text-sm font-bold text-emerald-400">
+                    <span>Total Invoice Balance:</span>
+                    <span id="invGrandTotal" class="font-mono text-base">£0.00</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button type="button" onclick="exportCSV()" class="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> Power BI CSV
+                </button>
+                <button type="button" onclick="closeInvoice()" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all">
+                    Close Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deployment Guide Modal -->
+    <div id="deployModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-rocket text-blue-500 text-lg"></i>
+                    <h2 class="text-base font-bold text-white">Deploy & PWA Setup Guide</h2>
+                </div>
+                <button onclick="toggleDeployModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="text-xs text-slate-300 space-y-3 max-h-[60vh] overflow-y-auto pr-1 leading-relaxed">
+                <p class="font-semibold text-blue-400">Deploy for Free (3 Easy Methods):</p>
+                
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <h4 class="font-bold text-white text-xs">Method 1: GitHub Pages (Recommended)</h4>
+                    <ol class="list-decimal pl-4 space-y-1 text-slate-400">
+                        <li>Create a free account on <strong class="text-slate-200">GitHub.com</strong>.</li>
+                        <li>Create a new repository named <code class="text-emerald-400 bg-slate-900 px-1 py-0.5 rounded">meeting-tracker</code>.</li>
+                        <li>Upload this <code class="text-emerald-400 bg-slate-900 px-1 py-0.5 rounded">index.html</code> file directly to the repository.</li>
+                        <li>Go to <strong>Settings &gt; Pages</strong>, select the <code class="text-slate-200">main</code> branch, and click <strong>Save</strong>.</li>
+                        <li>Your live HTTPS URL will be ready in 1 minute!</li>
+                    </ol>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <h4 class="font-bold text-white text-xs">Method 2: Netlify Drop (No Account Needed)</h4>
+                    <ol class="list-decimal pl-4 space-y-1 text-slate-400">
+                        <li>Go to <strong class="text-slate-200">app.netlify.com/drop</strong>.</li>
+                        <li>Put this <code class="text-emerald-400 bg-slate-900 px-1 py-0.5 rounded">index.html</code> file inside a folder on your computer.</li>
+                        <li>Drag and drop the folder into Netlify Drop for instant hosting!</li>
+                    </ol>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                    <h4 class="font-bold text-white text-xs">Method 3: Vercel CLI / Web</h4>
+                    <ol class="list-decimal pl-4 space-y-1 text-slate-400">
+                        <li>Go to <strong class="text-slate-200">Vercel.com</strong> and log in.</li>
+                        <li>Import your GitHub repo containing this file for instant HTTPS deployment.</li>
+                    </ol>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 space-y-1">
+                    <h4 class="font-bold text-white text-xs">How to Install as PWA on Mobile / Desktop:</h4>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-400">
+                        <li><strong class="text-slate-200">iOS (Safari):</strong> Tap the <em>Share</em> button &gt; tap <em>"Add to Home Screen"</em>.</li>
+                        <li><strong class="text-slate-200">Android (Chrome):</strong> Tap the 3 dots menu &gt; tap <em>"Install App"</em> or <em>"Add to Home screen"</em>.</li>
+                        <li><strong class="text-slate-200">Desktop (Chrome/Edge):</strong> Click the install icon in the URL bar.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800 text-right">
+                <button onclick="toggleDeployModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Engine -->
+    <script>
+        // Core State Engine
+        let timerInterval = null;
+        let meetingState = 'IDLE'; // IDLE, RUNNING, PAUSED, FINISHED
+        let totalElapsedSeconds = 0;
+        let currentAttendees = 4;
+        let segments = [];
+        let segmentId = 1;
+        let blockStartTime = null;
+
+        // Register Service Worker for Offline PWA Capabilities
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    self.addEventListener('install', (e) => e.waitUntil(self.skipWaiting()));
+                    self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+                    self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW reg error:', err));
+            });
+        }
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            renderApp();
+            
+            // Event Listeners for local storage persistence
+            document.getElementById('meetingName').addEventListener('input', saveToLocalStorage);
+            document.getElementById('hourlyRate').addEventListener('input', () => {
+                saveToLocalStorage();
+                recalculateTotals();
+                renderApp();
+            });
+            document.getElementById('materialCost').addEventListener('input', () => {
+                saveToLocalStorage();
+                renderApp();
+            });
+        });
+
+        function toggleDeployModal() {
+            document.getElementById('deployModal').classList.toggle('hidden');
+        }
+
+        function toggleStartPause() {
+            if (meetingState === 'IDLE' || meetingState === 'PAUSED') {
+                startOrResumeMeeting();
+            } else if (meetingState === 'RUNNING') {
+                pauseMeeting();
+            }
+        }
+
+        function startOrResumeMeeting() {
+            meetingState = 'RUNNING';
+            if (!blockStartTime) blockStartTime = new Date();
+            
+            document.getElementById('hourlyRate').disabled = true;
+            timerInterval = setInterval(updateClock, 1000);
+            saveToLocalStorage();
+            renderApp();
+        }
+
+        function pauseMeeting() {
+            clearInterval(timerInterval);
+            meetingState = 'PAUSED';
+            commitBlock();
+            saveToLocalStorage();
+            renderApp();
+        }
+
+        function adjustAttendees(delta) {
+            currentAttendees = Math.max(1, currentAttendees + delta);
+            document.getElementById('attendeeDisplay').innerText = currentAttendees;
+
+            if (meetingState === 'RUNNING') {
+                commitBlock();
+                blockStartTime = new Date();
+            }
+            saveToLocalStorage();
+            renderApp();
+        }
+
+        // De-duplication 15-Minute Quarter-Hour Bucket Key
+        function getQuarterBucket(dateObj) {
+            let d = new Date(dateObj);
+            let m = d.getMinutes();
+            let bucketMin = Math.floor(m / 15) * 15;
+            d.setMinutes(bucketMin, 0, 0);
+            return d.getTime();
+        }
+
+        function commitBlock() {
+            if (!blockStartTime) return;
+            let now = new Date();
+            let rawSecs = (now - blockStartTime) / 1000;
+            if (rawSecs < 1) return;
+
+            let rawHours = rawSecs / 3600;
+            let billedHours = Math.ceil(rawHours * 4) / 4;
+            if (billedHours === 0) billedHours = 0.25;
+
+            let rate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+            let blockCost = billedHours * currentAttendees * rate;
+
+            let bucketKey = getQuarterBucket(blockStartTime);
+            let existingSegment = segments.find(s => s.bucketKey === bucketKey);
+
+            if (existingSegment) {
+                // De-duplication: update max concurrent headcount in quarter bucket
+                if (currentAttendees > existingSegment.attendees) {
+                    existingSegment.attendees = currentAttendees;
+                }
+                existingSegment.end = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                existingSegment.blockCost = existingSegment.billedHours * existingSegment.attendees * rate;
+            } else {
+                segments.push({
+                    id: segmentId++,
+                    bucketKey: bucketKey,
+                    start: blockStartTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
+                    end: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
+                    attendees: currentAttendees,
+                    billedHours: billedHours.toFixed(2),
+                    blockCost: blockCost
+                });
+            }
+
+            recalculateTotals();
+            blockStartTime = new Date();
+        }
+
+        function recalculateTotals() {
+            let rate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+            let runningSum = 0;
+            segments.forEach(seg => {
+                seg.blockCost = parseFloat(seg.billedHours) * seg.attendees * rate;
+                runningSum += seg.blockCost;
+                seg.runningTotal = runningSum;
+            });
+        }
+
+        function concludeMeeting() {
+            if (meetingState === 'RUNNING') {
+                commitBlock();
+            }
+            clearInterval(timerInterval);
+            meetingState = 'FINISHED';
+            saveToLocalStorage();
+            renderApp();
+            showInvoiceModal();
+        }
+
+        function confirmReset() {
+            if (confirm("Are you sure you want to reset all timers and clear meeting logs?")) {
+                resetMeeting();
+            }
+        }
+
+        function resetMeeting() {
+            clearInterval(timerInterval);
+            meetingState = 'IDLE';
+            totalElapsedSeconds = 0;
+            currentAttendees = 4;
+            segments = [];
+            segmentId = 1;
+            blockStartTime = null;
+
+            document.getElementById('hourlyRate').disabled = false;
+            document.getElementById('timerDisplay').innerText = "00:00:00";
+            document.getElementById('attendeeDisplay').innerText = currentAttendees;
+            
+            localStorage.removeItem('pwa_meeting_tracker_state');
+            renderApp();
+        }
+
+        function updateClock() {
+            totalElapsedSeconds++;
+            let hrs = String(Math.floor(totalElapsedSeconds / 3600)).padStart(2, '0');
+            let mins = String(Math.floor((totalElapsedSeconds % 3600) / 60)).padStart(2, '0');
+            let secs = String(totalElapsedSeconds % 60).padStart(2, '0');
+            document.getElementById('timerDisplay').innerText = `${hrs}:${mins}:${secs}`;
+
+            let rawHoursTotal = totalElapsedSeconds / 3600;
+            let rate = parseFloat(document.getElementById('hourlyRate').value) || 0;
+            let liveLabor = rawHoursTotal * currentAttendees * rate;
+            document.getElementById('liveCostDisplay').innerText = `£${liveLabor.toFixed(2)}`;
+            
+            if (totalElapsedSeconds % 5 === 0) saveToLocalStorage();
+        }
+
+        function renderApp() {
+            const startBtn = document.getElementById('startPauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const statusBadge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+
+            if (meetingState === 'RUNNING') {
+                startBtn.innerHTML = `<i class="fa-solid fa-pause text-xs"></i> <span>Pause Meeting</span>`;
+                startBtn.className = "w-full py-3.5 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-amber-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2";
+                
+                stopBtn.disabled = false;
+                stopBtn.className = "py-3 px-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer";
+
+                statusBadge.className = "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5";
+                statusText.innerText = "Running";
+            } else if (meetingState === 'PAUSED') {
+                startBtn.innerHTML = `<i class="fa-solid fa-play text-xs"></i> <span>Resume Meeting</span>`;
+                startBtn.className = "w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2";
+
+                statusBadge.className = "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5";
+                statusText.innerText = "Paused";
+            } else if (meetingState === 'FINISHED') {
+                startBtn.innerHTML = `<i class="fa-solid fa-check text-xs"></i> <span>Meeting Invoiced</span>`;
+                startBtn.disabled = true;
+                startBtn.className = "w-full py-3.5 px-4 bg-slate-800 text-slate-500 rounded-xl text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2";
+
+                stopBtn.disabled = true;
+                stopBtn.className = "py-3 px-3 bg-slate-800 text-slate-500 rounded-xl text-xs font-bold cursor-not-allowed flex items-center justify-center gap-1.5";
+
+                statusBadge.className = "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1.5";
+                statusText.innerText = "Invoiced";
+            } else {
+                startBtn.innerHTML = `<i class="fa-solid fa-play text-xs"></i> <span>Start Meeting</span>`;
+                startBtn.disabled = false;
+                startBtn.className = "w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2";
+
+                stopBtn.disabled = true;
+                stopBtn.className = "py-3 px-3 bg-slate-800 text-slate-500 rounded-xl text-xs font-bold cursor-not-allowed flex items-center justify-center gap-1.5";
+
+                statusBadge.className = "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5";
+                statusText.innerText = "Ready";
+            }
+
+            renderLogTable();
+        }
+
+        function renderLogTable() {
+            let tbody = document.getElementById('logTableBody');
+            tbody.innerHTML = '';
+            let totalLabor = 0;
+
+            if (segments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 font-sans italic text-xs">No active meeting blocks logged.</td></tr>`;
+            } else {
+                segments.forEach((seg, index) => {
+                    totalLabor = seg.runningTotal;
+
+                    // Progressive strikethrough running total log
+                    let runningTotalHtml = '';
+                    for (let i = 0; i <= index; i++) {
+                        let isCurrentLine = (i === index);
+                        let className = isCurrentLine ? "active-cost" : "strike-cost block text-[10px]";
+                        let val = `£${segments[i].runningTotal.toFixed(2)}`;
+                        runningTotalHtml += `<div class="${className}">${val}</div>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-2.5 text-slate-300">#${seg.id}</td>
+                            <td class="p-2.5 text-slate-400 text-[11px]">${seg.start} - ${seg.end}</td>
+                            <td class="p-2.5 text-right font-bold text-slate-200">${seg.attendees}</td>
+                            <td class="p-2.5 text-right text-slate-300">${seg.billedHours}</td>
+                            <td class="p-2.5 text-right">${runningTotalHtml}</td>
+                        </tr>`;
+                });
+            }
+
+            let materials = parseFloat(document.getElementById('materialCost').value) || 0;
+            let grandTotal = totalLabor + materials;
+
+            document.getElementById('summaryLabor').innerText = `£${totalLabor.toFixed(2)}`;
+            document.getElementById('summaryMaterials').innerText = `£${materials.toFixed(2)}`;
+            document.getElementById('summaryTotal').innerText = `£${grandTotal.toFixed(2)}`;
+        }
+
+        function showInvoiceModal() {
+            document.getElementById('invMeetingName').innerText = document.getElementById('meetingName').value || "Meeting Summary";
+            document.getElementById('invDate').innerText = "Invoice Date: " + new Date().toLocaleDateString('en-GB');
+            document.getElementById('invRate').innerText = document.getElementById('hourlyRate').value || "10";
+
+            let invTbody = document.getElementById('invoiceTableBody');
+            invTbody.innerHTML = '';
+            let totalLabor = 0;
+
+            segments.forEach((seg, index) => {
+                totalLabor = seg.runningTotal;
+                let runningTotalHtml = '';
+                for (let i = 0; i <= index; i++) {
+                    let isCurrentLine = (i === index);
+                    let className = isCurrentLine ? "font-bold text-emerald-700" : "line-through text-slate-400 text-[10px] block";
+                    let val = `£${segments[i].runningTotal.toFixed(2)}`;
+                    runningTotalHtml += `<div class="${className}">${val}</div>`;
+                }
+
+                invTbody.innerHTML += `
+                    <tr>
+                        <td class="p-2 text-slate-700">#${seg.id}</td>
+                        <td class="p-2 text-slate-500 text-[10px]">${seg.start} - ${seg.end}</td>
+                        <td class="p-2 text-right text-slate-800 font-bold">${seg.attendees}</td>
+                        <td class="p-2 text-right text-slate-700">${seg.billedHours}</td>
+                        <td class="p-2 text-right">${runningTotalHtml}</td>
+                    </tr>`;
+            });
+
+            let materials = parseFloat(document.getElementById('materialCost').value) || 0;
+            let grandTotal = totalLabor + materials;
+
+            document.getElementById('invLabor').innerText = `£${totalLabor.toFixed(2)}`;
+            document.getElementById('invMaterials').innerText = `£${materials.toFixed(2)}`;
+            document.getElementById('invGrandTotal').innerText = `£${grandTotal.toFixed(2)}`;
+
+            document.getElementById('invoiceModal').classList.remove('hidden');
+        }
+
+        function closeInvoice() {
+            document.getElementById('invoiceModal').classList.add('hidden');
+        }
+
+        function exportCSV() {
+            if (segments.length === 0) {
+                alert("No logged meeting segments to export!");
+                return;
+            }
+
+            let meetingName = document.getElementById('meetingName').value || "Meeting";
+            let rate = document.getElementById('hourlyRate').value;
+            let materials = document.getElementById('materialCost').value;
+
+            let csvRows = [];
+            csvRows.push(["Meeting_Name", "Segment_ID", "Start_Time", "End_Time", "Attendees", "Billed_Quarter_Hours", "Hourly_Rate_GBP", "Segment_Cost_GBP", "Cumulative_Running_Total_GBP", "Materials_Cost_GBP"]);
+
+            segments.forEach(seg => {
+                csvRows.push([
+                    `"${meetingName}"`,
+                    seg.id,
+                    `"${seg.start}"`,
+                    `"${seg.end}"`,
+                    seg.attendees,
+                    seg.billedHours,
+                    rate,
+                    seg.blockCost.toFixed(2),
+                    seg.runningTotal.toFixed(2),
+                    materials
+                ]);
+            });
+
+            let csvString = csvRows.map(e => e.join(",")).join("\n");
+            let blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            let url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${meetingName.replace(/[^a-z0-9]/gi, '_')}_PowerBI_Export.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Local Storage State Persistence
+        function saveToLocalStorage() {
+            const data = {
+                meetingName: document.getElementById('meetingName').value,
+                hourlyRate: document.getElementById('hourlyRate').value,
+                materialCost: document.getElementById('materialCost').value,
+                totalElapsedSeconds,
+                currentAttendees,
+                segments,
+                segmentId,
+                meetingState,
+                blockStartTime: blockStartTime ? blockStartTime.getTime() : null
+            };
+            localStorage.setItem('pwa_meeting_tracker_state', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('pwa_meeting_tracker_state');
+            if (!saved) return;
+
+            try {
+                const data = JSON.parse(saved);
+                document.getElementById('meetingName').value = data.meetingName || "Q3 Client Strategy Session";
+                document.getElementById('hourlyRate').value = data.hourlyRate || "10";
+                document.getElementById('materialCost').value = data.materialCost || "0";
+                totalElapsedSeconds = data.totalElapsedSeconds || 0;
+                currentAttendees = data.currentAttendees || 4;
+                segments = data.segments || [];
+                segmentId = data.segmentId || 1;
+                meetingState = data.meetingState || 'IDLE';
+                blockStartTime = data.blockStartTime ? new Date(data.blockStartTime) : null;
+
+                document.getElementById('attendeeDisplay').innerText = currentAttendees;
+                
+                let hrs = String(Math.floor(totalElapsedSeconds / 3600)).padStart(2, '0');
+                let mins = String(Math.floor((totalElapsedSeconds % 3600) / 60)).padStart(2, '0');
+                let secs = String(totalElapsedSeconds % 60).padStart(2, '0');
+                document.getElementById('timerDisplay').innerText = `${hrs}:${mins}:${secs}`;
+
+                if (meetingState === 'RUNNING') {
+                    timerInterval = setInterval(updateClock, 1000);
+                }
+            } catch (e) {
+                console.error("Failed to restore app state", e);
+            }
+        }
+    </script>
+</body>
+</html>
+```
